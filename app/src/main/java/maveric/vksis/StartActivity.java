@@ -150,9 +150,17 @@ public class StartActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_start);
 
-        /*byte[] test = {0, 1, 2, 3, 4, 5, 6, 126, 126};
-        byte[] processed = Packet.makePacket(test);
-        byte[] reverce = Packet.extractFromPacket(processed);*/
+        byte[] test = {49, 50, 51};
+        //byte[] processed = Packet.makePacket(test);
+        //byte[] reverce = Packet.extractFromPacket(processed);
+        CRC8.updateChecksumm(test);
+        byte a = CRC8.getValue();
+
+        test[0] ^= 0x01;
+        CRC8.clearValue();
+        CRC8.updateChecksumm(test);
+        byte b = CRC8.getValue();
+
 
 
         final ListView listview = (ListView) findViewById(R.id.listview);

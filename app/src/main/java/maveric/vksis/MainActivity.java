@@ -88,9 +88,9 @@ public class MainActivity extends Activity {
         }
 
         /* Call this from the main activity to send data to the remote device */
-        public void write(byte[] bytes) {
+        public void write(byte[] bytes, boolean addError) {
             try {
-                mmOutStream.write(Packet.makePacket(bytes));
+                mmOutStream.write(Packet.makePacket(bytes, addError));
             } catch (IOException e) { }
         }
 
@@ -113,7 +113,7 @@ public class MainActivity extends Activity {
     }
     private void doUpdate(byte[] buffer) {
         TextView textView = (TextView)findViewById(R.id.messages);
-        textView.append(new String(buffer, Charset.forName("UTF-8")) + "\n");
+        textView.append((buffer == null) ? "Checksumm error\n" : new String(buffer, Charset.forName("UTF-8")) + "\n");
         final int scrollAmount = textView.getLayout().getLineTop(textView.getLineCount()) - textView.getHeight();
         // if there is no need to scroll, scrollAmount will be <=0
         if (scrollAmount > 0)
@@ -125,6 +125,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         mSocketThread.start();
     }
 
@@ -156,7 +157,7 @@ public class MainActivity extends Activity {
         if (text.length() == 0) {
             return;
         }
-        mSocketThread.write(text.getBytes(Charset.forName("UTF-8")));
+        mSocketThread.write(text.getBytes(Charset.forName("UTF-8")), false);
         editText.getText().clear();
 
         textView.append(text + "\n");
@@ -167,6 +168,25 @@ public class MainActivity extends Activity {
         else
             textView.scrollTo(0, 0);
 
+    }
+    public void sendErrorMessage(View view) {
+        EditText editText = (EditText)findViewById(R.id.edit_message);
+        TextView textView = (TextView)findViewById(R.id.messages);
+        String text = editText.getText().toString();
+
+        if (text.length() == 0)
+            return;
+
+        mSocketThread.write(text.getBytes(Charset.forName("UTF-8")), true);
+        editText.getText().clear();
+
+        textView.append(text + "\n");
+        final int scrollAmount = textView.getLayout().getLineTop(textView.getLineCount()) - textView.getHeight();
+        // if there is no need to scroll, scrollAmount will be <=0
+        if (scrollAmount > 0)
+            textView.scrollTo(0, scrollAmount);
+        else
+            textView.scrollTo(0, 0);
     }
     protected void onDestroy() {
         super.onDestroy();

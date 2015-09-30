@@ -20,7 +20,7 @@ public class Packet {
     private static ArrayList<Boolean> endOfPacket = new ArrayList<>(Arrays.asList(false, true, true, true, true, true, true, false));
     private static ArrayList<Boolean> packets = new ArrayList<>();
 
-    public static byte[] makePacket(byte[] rawData) {
+    public static byte[] makePacket(byte[] rawData, boolean addError) {
         int packetsAmount = rawData.length / bytesPerPacket;
 
         if ((rawData.length % bytesPerPacket) > 0) {
@@ -32,20 +32,26 @@ public class Packet {
         for (int packetNumber = 0; packetNumber < packetsAmount; packetNumber++) {
             insertEndOfPacket();
 
+            int currentPosition = packetNumber * bytesPerPacket;
+            insertCheckSum(rawData, currentPosition);
+
             for (int byteNumber = 0; byteNumber < bytesPerPacket; byteNumber++) {
-                int currentPosition = packetNumber * bytesPerPacket + byteNumber;
+                //int currentPosition = packetNumber * bytesPerPacket + byteNumber;
                 byte currentByte;
 
-                if (currentPosition >= rawData.length)
+                if (currentPosition + byteNumber >= rawData.length)
                     break;
                 else
-                    currentByte = rawData[currentPosition];
+                    currentByte = rawData[currentPosition + byteNumber];
 
-                for (int bitNumber = 7; bitNumber >= 0; bitNumber--) {
-                    packets.add(((currentByte >> bitNumber) & 1) == 1);
-                    checkForSequence(Operation.Add);
-                }
+                addByteToPacket(currentByte);
             }
+
+            if (addError)
+                if (packets.get(packets.size() - 1))
+                    packets.set(packets.size() - 1, false);
+                else
+                    packets.set(packets.size() - 1, true);
 
             insertEndOfPacket();
         }
@@ -76,8 +82,23 @@ public class Packet {
             }
         }
 
+        //extract checksumm
+        byte expectedChecksumm = 0;
+        for (int i = 0; i < 8; i++) {
+            expectedChecksumm |= ((packets.get(0)) ? 1 : 0) << 7 - i;
+            packets.remove(0);
+        }
 
-        return bitListToByteArray();
+        byte[] extractedMessage = bitListToByteArray();
+
+        CRC8.clearValue();
+        CRC8.updateChecksumm(extractedMessage);
+        byte checksumm = CRC8.getValue();
+
+        if (checksumm != expectedChecksumm)
+            return null;
+
+        return extractedMessage;
     }
 
     private static byte[] bitListToByteArray() {
@@ -85,16 +106,21 @@ public class Packet {
         int bytesNumber = packetsSize / 8;
         byte[] processedData = new byte[bytesNumber];
 
-        for (int i = 0; i < bytesNumber; i++) {
-            byte b = 0;
-            for (int j = 0; j < 8; j++) {
-                b |= ((packets.get(i * 8 + j)) ? 1 : 0) << 7 - j;
-            }
-            processedData[i] = b;
-        }
+        for (int i = 0; i < bytesNumber; i++)
+            processedData[i] = extractByte(i);
 
         return processedData;
     }
+
+    private static byte extractByte(int number) {
+        byte b = 0;
+
+        for (int i = 0; i < 8; i++)
+            b |= ((packets.get(number * 8 + i)) ? 1 : 0) << 7 - i;
+
+        return b;
+    }
+
 
     private static boolean checkForSequence(Operation op) {
         ArrayList<Boolean> sequence;
@@ -137,6 +163,28 @@ public class Packet {
             packets.add(endOfPacket.get(i));
         }
     }
+
+    private static void insertCheckSum(byte[] data, int currentPos) {
+        CRC8.clearValue();
+
+        for (int i = 0; i < bytesPerPacket; i++) {
+            if (currentPos + i >= data.length)
+                break;
+            CRC8.updateChecksumm(data[currentPos + i]);
+        }
+
+
+        addByteToPacket(CRC8.getValue());
+
+    }
+
+    private static void addByteToPacket(byte b) {
+        for (int bitNumber = 7; bitNumber >= 0; bitNumber--) {
+            packets.add(((b >> bitNumber) & 1) == 1);
+            checkForSequence(Operation.Add);
+        }
+    }
+
 
 
 }

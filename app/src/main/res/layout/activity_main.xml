@@ -6,13 +6,22 @@
     android:paddingRight="5dp" >
 
 
-    <Button android:id="@+id/send_button"
+    <Button android:id="@+id/send_error_button"
         android:layout_width="96dp"
         android:layout_height="40dp"
         android:layout_alignParentRight="true"
         android:layout_alignParentBottom="true"
+        android:text="@string/send_error_button"
+        android:onClick="sendErrorMessage"/>
+
+    <Button android:id="@+id/send_button"
+        android:layout_width="96dp"
+        android:layout_height="40dp"
+        android:layout_alignParentBottom="true"
+        android:layout_toLeftOf="@id/send_error_button"
         android:text="@string/button_send"
         android:onClick="sendMessage"/>
+
 
     <EditText android:id="@+id/edit_message"
         android:layout_width="96dp"

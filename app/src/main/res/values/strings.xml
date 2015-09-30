@@ -9,4 +9,5 @@
     <string name="title_activity_main">MainActivity</string>
     <string name="search_for_devices">Client</string>
     <string name="enable_discoverability">Server</string>
+    <string name="send_error_button">Error</string>
 </resources>
